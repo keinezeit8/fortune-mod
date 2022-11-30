@@ -90,22 +90,23 @@
 
 static char *input_filename, data_filename[MAXPATHLEN];
 
-static FILE *Inf, *Dataf, *Outf;
+static FILE *Inf, *Dataf;
 
 static off_t pos, Seekpts[2]; /* seek pointers to fortunes */
 
 #include "fortune-util.h"
 
-static void getargs(char *av[])
+static void getargs(char *argv[])
 {
-    av += optind + 1;
+    argv += optind + 1;
 
-    if (*av)
+    if (*argv)
     {
-        input_filename = *av;
+        input_filename = *argv;
         input_fn_2_data_fn();
     }
     else
+    {
         /*    {
          * Don't write out errors here, either; trust in exit codes and sh
          * fprintf(stderr, "No input file name\n");
@@ -113,7 +114,8 @@ static void getargs(char *av[])
          * [outputfile]\n");
          */
         exit(1);
-    /*    } */
+        /*    } */
+    }
 }
 
 /*
@@ -125,7 +127,9 @@ static void get_pos(STRFILE *fp)
 {
     pos = random() % fp->str_numstr;
     if (++(pos) >= (off_t)(fp->str_numstr))
+    {
         pos -= fp->str_numstr;
+    }
 }
 
 /*
@@ -135,13 +139,14 @@ static void get_pos(STRFILE *fp)
 static void get_fort(STRFILE fp)
 {
     get_pos(&fp);
-    fseek(Dataf, (long)(sizeof fp + pos * sizeof Seekpts[0]), SEEK_SET);
+    fseek(Dataf, (long)((long)sizeof(fp) + pos * (long)sizeof(Seekpts[0])),
+        SEEK_SET);
     if (!fread(Seekpts, sizeof Seekpts, 1, Dataf))
     {
         exit(1);
     }
-    Seekpts[0] = ntohl(Seekpts[0]);
-    Seekpts[1] = ntohl(Seekpts[1]);
+    Seekpts[0] = ntohl((uint32_t)Seekpts[0]);
+    Seekpts[1] = ntohl((uint32_t)Seekpts[1]);
 }
 
 static void display(FILE *fp, STRFILE table)
@@ -155,23 +160,29 @@ static void display(FILE *fp, STRFILE table)
          i++)
     {
         if (table.str_flags & STR_ROTATED)
+        {
             for (p = line; (ch = *p); ++p)
             {
                 if (isupper(ch))
+                {
                     *p = 'A' + (ch - 'A' + 13) % 26;
+                }
                 else if (islower(ch))
+                {
                     *p = 'a' + (ch - 'a' + 13) % 26;
+                }
             }
+        }
         fputs(line, stdout);
     }
     fflush(stdout);
 }
 
-int main(int ac GCC_UNUSED, char **av)
+int main(int argc GCC_UNUSED, char **argv)
 {
     static STRFILE tbl; /* description table */
 
-    getargs(av);
+    getargs(argv);
     if (!(Inf = fopen(input_filename, "r")))
     {
         perror(input_filename);
@@ -192,14 +203,12 @@ int main(int ac GCC_UNUSED, char **av)
     tbl.str_shortlen = ntohl(tbl.str_shortlen);
     tbl.str_flags = ntohl(tbl.str_flags);
 
-    srandom((int)(time((time_t *)NULL) + getpid()));
+    call_srandom();
     get_fort(tbl);
     display(Inf, tbl);
 
-    exit(0);
-
     fclose(Inf);
     fclose(Dataf);
-    fclose(Outf);
-    exit(0);
+
+    return 0;
 }

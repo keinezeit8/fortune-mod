@@ -9,20 +9,27 @@ use Path::Tiny qw/ cwd /;
 use Docker::CLI::Wrapper::Container v0.0.4 ();
 
 my $obj = Docker::CLI::Wrapper::Container->new(
-    { container => "rinutils--deb--test-build", sys => "debian:sid", } );
+    { container => "fortune-mod--deb--test-build", sys => "debian:sid", } );
 
 my $USER    = "mygbp";
 my $HOMEDIR = "/home/$USER";
 
 $obj->clean_up();
 $obj->run_docker();
-my $REPO   = 'rinutils';
-my $BRANCH = 'master';
-my $URL    = "https://salsa.debian.org/shlomif-guest/$REPO";
+my $REPO = 'fortune-mod';
+my $URL  = "https://salsa.debian.org/shlomif-guest/$REPO";
 
 if ( !-e $REPO )
 {
-    $obj->do_system( { cmd => [ "git", "clone", "-b", $BRANCH, $URL, ] } );
+    $obj->do_system( { cmd => [ "git", "clone", $URL, ] } );
+}
+if ( !-e "$REPO/.git" )
+{
+    die "$REPO is not a git repository!";
+}
+if ( !-f "$REPO/debian/rules" )
+{
+    die "$REPO is not a debian git repository!";
 }
 my $cwd = cwd;
 chdir "./$REPO";
@@ -38,7 +45,7 @@ my $script = <<"EOSCRIPTTTTTTT";
 $BASH_SAFETY
 apt-get -y update
 apt-get -y install eatmydata sudo
-sudo eatmydata apt -y install build-essential chrpath cmake dgit git-buildpackage librecode-dev perl recode
+sudo eatmydata apt -y install build-essential chrpath cmake git-buildpackage librecode-dev librinutils-dev perl recode
 sudo adduser --disabled-password --gecos '' "$USER"
 sudo usermod -a -G sudo "$USER"
 echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
@@ -54,19 +61,19 @@ $obj->exe_bash_code(
     }
 );
 
+my $verrel = "3.10.0-0.1";
 $script = <<"EOSCRIPTTTTTTT";
 $BASH_SAFETY
 cd "$HOMEDIR/$REPO"
 git clean -dxf .
-(if ! gbp buildpackage 2>&1 ; then cat /tmp/rinutils*diff* || true ; exit 0 ; fi) | tee -a ~/"$LOG_FN"
-(if ! dpkg-buildpackage --changes-option=-S 2>&1 ; then cat /tmp/rinutils*diff* || true; exit 0 ; fi) | tee -a ~/"$LOG_FN"
-( ls -lRA ) | tee -a ~/"$LOG_FN"
-(if ! debuild -i -us -uc -S 2>&1 ; then cat /tmp/rinutils*diff* ; exit 1 ; fi) | tee -a ~/"$LOG_FN"
-( ls -lRA ) | tee -a ~/"$LOG_FN"
-(if ! dgit push-source --gbp 2>&1 ; then exit 0 || cat /tmp/rinutils*diff* ; exit 1 ; fi) | tee -a ~/"$LOG_FN"
-sudo dpkg -i ~/librinutils-dev_0.10.0-2_all.deb
-test -f /usr/include/rinutils/rinutils.h
-test -f /usr/include/rinutils/alloc_wrap.h
+(if ! gbp buildpackage 2>&1 ; then cat /tmp/fort*diff* ; exit 1 ; fi) | tee ~/"$LOG_FN"
+verrel="$verrel"
+sudo dpkg -i ~/fortune-mod_"\$verrel"_amd64.deb
+sudo dpkg -i ~/fortunes-min_"\$verrel"_all.deb
+sudo dpkg -i ~/fortunes_"\$verrel"_all.deb
+f=/usr/games/fortune
+test -x "\$f"
+"\$f"
 EOSCRIPTTTTTTT
 
 $obj->exe_bash_code(

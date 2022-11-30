@@ -1,6 +1,65 @@
 (Note: this file has been re-arranged to be in reverse chronological
 order, which is The Right Thing for ChangeLogs - DLC)
 
+August 10, 2022 (fortune-mod 3.14.1)
+
+	Try to fix the manpage's docbook5/XML markup.
+	See https://bugzilla.redhat.com/show_bug.cgi?id=2107574 .
+
+	Fix issue#67 - typo.
+	https://github.com/shlomif/fortune-mod/issues/67
+
+	Cleanups.
+
+May 3, 2022 (fortune-mod 3.14.0)
+
+	Fix CI builds - especially on x86-64 MS Windows.
+
+	Add new quotes.
+
+	Minor code cleanups.
+
+December 29, 2021 (fortune-mod 3.12.0)
+
+	Generate a newer and more canonical datfiles/rules-of-acquisition
+	from a CSV and a script ( https://github.com/shlomif/fortune-mod/pull/60 ;
+	thanks to @fonic . )
+
+	Eliminate some GCC, clang, perl, and nroff warnings.
+
+	Add curly braces to clauses in C code.
+
+	New cookies.
+
+December 15, 2021 (fortune-mod 3.10.0)
+
+	More fixes crosscompiling builds
+	( https://github.com/shlomif/fortune-mod/issues/58 ; thanks
+	to @leleliu008 )
+
+	Added datfiles/rules-of-acquisition (based on
+	https://github.com/JKirchartz/fortunes ; thanks
+	@JKirchartz ). Under the Unlicense.
+
+	cookie-files file: Tabs to spaces.
+
+December 14, 2021 (fortune-mod 3.8.0)
+
+	Try to fix crosscompiling builds
+	( https://github.com/shlomif/fortune-mod/issues/58 ; thanks
+	to @leleliu008 )
+
+	Merged datfiles/linuxcookie into datfiles/linux
+	while removing duplicates.
+
+	New cookies.
+
+	Tests suite's speed optimizations.
+
+	Code cleanups / refactoring.
+
+	Generate GitHub Actions' scripts.
+
 May 31, 2021 (fortune-mod 3.6.1)
 
 	Fix missing rinutils in release tarball.

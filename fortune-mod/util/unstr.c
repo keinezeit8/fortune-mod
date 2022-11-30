@@ -75,6 +75,7 @@
  * For the gory details, and lots of cussing, see strfile.c
  */
 
+#define FORTUNE_EXCLUDE_SRANDOM 1
 #include "fortune-mod-common.h"
 #include "fortune-util-set-outfn.h"
 
@@ -87,11 +88,12 @@ static FILE *Inf, *Dataf, *Outf;
 #include "fortune-util.h"
 
 /* ARGSUSED */
-static void getargs(int ac, char *av[])
+static void getargs(int argc, char *argv[])
 {
     int ch;
 
-    while ((ch = getopt(ac, av, "c:")) != EOF)
+    while ((ch = getopt(argc, argv, "c:")) != EOF)
+    {
         switch (ch)
         {
         case 'c':
@@ -108,14 +110,15 @@ static void getargs(int ac, char *av[])
                 "Usage:\n\tunstr [-c C] datafile[.ext] [outputfile]\n");
             exit(1);
         }
+    }
 
-    av += optind;
+    argv += optind;
 
-    if (*av)
+    if (*argv)
     {
-        input_filename = *av;
+        input_filename = *argv;
         input_fn_2_data_fn();
-        set_output_filename(*++av);
+        set_output_filename(*++argv);
     }
     else
     {
@@ -166,11 +169,11 @@ static void order_unstr(STRFILE *tbl)
     }
 }
 
-int main(int ac, char **av)
+int main(int argc, char **argv)
 {
     static STRFILE tbl; /* description table */
 
-    getargs(ac, av);
+    getargs(argc, argv);
     if (!(Inf = fopen(input_filename, "r")))
     {
         perror(input_filename);
@@ -182,7 +185,9 @@ int main(int ac, char **av)
         exit(1);
     }
     if (*output_filename == '\0')
+    {
         Outf = stdout;
+    }
     else if (!(Outf = fopen(output_filename, "w+")))
     {
         perror(output_filename);
@@ -206,9 +211,13 @@ int main(int ac, char **av)
         exit(1);
     }
     if (new_delimiter_char)
+    {
         delimiter_char = new_delimiter_char;
+    }
     else
+    {
         delimiter_char = (char)tbl.str_delim;
+    }
     order_unstr(&tbl);
     fclose(Inf);
     fclose(Dataf);

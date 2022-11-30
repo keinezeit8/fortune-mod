@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.10)
 
 project(fortune-mod)
 
@@ -6,6 +6,9 @@ INCLUDE ("${CMAKE_SOURCE_DIR}/cmake/shlomif_common_bootstrap.cmake")
 SHLOMIF_COMMON_SETUP("${private_mod_path}")
 
 CMAKE_POLICY(SET CMP0054 NEW)
+
+# see: https://cmake.org/cmake/help/latest/variable/CMAKE_CROSSCOMPILING.html
+SET (IS_CROSS "${CMAKE_CROSSCOMPILING}")
 
 INCLUDE(FindPkgConfig)
 
@@ -30,15 +33,14 @@ SET(CPACK_PACKAGE_INSTALL_DIRECTORY "${CPACK_PACKAGE_DESCRIPTION_SUMMARY} ${CPAC
 SET(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 SET(CPACK_SOURCE_GENERATOR "TXZ")
 
-SET (base_with_ver "fortune-mod-[0-9]+\\\\.[0-9]+\\\\.[0-9]+")
-
 SET(CPACK_SOURCE_IGNORE_FILES
     "/\\\\.deps/"
     "/\\\\.git/"
     "/\\\\.tidyall\\\\.d/"
-    "~$"
-    "\\\\.pyc$"
+    "/t/valgrind[0-9]+\\\\.t$"
     "/tags$"
+    "\\\\.pyc$"
+    "~$"
     # "/(build|BUILD|B)/"
 )
 
@@ -91,6 +93,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 SET (WITH_TEST_SUITE CACHE BOOL "")
 SET (NO_OFFENSIVE CACHE BOOL "Exclude the offensive option.")
+SET (USE_WIN32_REGEX_LIBS TRUE CACHE BOOL "Link to the regex libraries (only affects MSWin builds)")
 SET (LOCALDIR "${CMAKE_INSTALL_PREFIX}/local/share/games/fortunes" CACHE STRING "LOCALDIR fortunes dir")
 SET (LOCALODIR "${LOCALDIR}/off" CACHE STRING "offensive fortunes localdir")
 SET (COOKIEDIR "${CMAKE_INSTALL_PREFIX}/share/games/fortunes" CACHE STRING  "cookie dir not under /usr/local")
@@ -106,7 +109,12 @@ INCLUDE ("${CMAKE_SOURCE_DIR}/cmake/rinutils_bootstrap.cmake")
 
 RINUTILS_SET_UP_FLAGS()
 
-IF ("$ENV{FCS_GCC}")
+IF ("$ENV{FCS_CLANG}")
+    ADD_DEFINITIONS("-Weverything -Wno-language-extension-token -Wno-padded -Wno-gnu-statement-expression -Wno-unused-parameter -Wno-vla -Wno-cast-align -Wno-used-but-marked-unused -Wno-cast-qual -Wno-comma -Wno-disabled-macro-expansion -Wno-extra-semi-stmt -Wno-documentation-unknown-command -Wno-documentation -Wno-documentation-deprecated-sync -Wno-pass-failed -Wno-implicit-fallthrough")
+    # ADD_DEFINITIONS("-Weverything")
+ENDIF ()
+
+IF ($ENV{FCS_GCC})
     ADD_DEFINITIONS("-W -Wabi=11 -Waddress -Waggressive-loop-optimizations -Wall -Wattributes -Wbad-function-cast -Wbool-compare -Wbool-operation -Wbuiltin-declaration-mismatch -Wbuiltin-macro-redefined -Wcast-align -Wchar-subscripts -Wclobbered -Wcomment -Wcomments -Wcoverage-mismatch -Wcpp -Wdangling-else -Wdate-time -Wdeprecated -Wdeprecated-declarations -Wdesignated-init -Wdisabled-optimization -Wdiscarded-array-qualifiers -Wdiscarded-qualifiers -Wdiv-by-zero -Wdouble-promotion -Wduplicated-branches -Wduplicated-cond -Wduplicate-decl-specifier -Wempty-body -Wendif-labels -Wenum-compare -Wexpansion-to-defined -Wextra -Wformat-contains-nul -Wformat-extra-args -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat-y2k -Wformat-zero-length -Wframe-address -Wfree-nonheap-object -Whsa -Wignored-attributes -Wignored-qualifiers -Wimplicit -Wimplicit-function-declaration -Wimplicit-int -Wincompatible-pointer-types -Winit-self -Winline -Wint-conversion -Wint-in-bool-context -Wint-to-pointer-cast -Winvalid-memory-model -Winvalid-pch -Wjump-misses-init -Wlogical-not-parentheses -Wlogical-op -Wmain -Wmaybe-uninitialized -Wmemset-elt-size -Wmemset-transposed-args -Wmisleading-indentation -Wmissing-braces -Wmissing-declarations -Wmissing-field-initializers -Wmissing-include-dirs -Wmissing-parameter-type -Wmissing-prototypes -Wmultichar -Wnarrowing -Wnested-externs -Wnonnull -Wnonnull-compare -Wnull-dereference -Wodr -Wold-style-declaration -Wold-style-definition -Wopenmp-simd -Woverflow -Woverlength-strings -Woverride-init -Wpacked -Wpacked-bitfield-compat -Wparentheses -Wpointer-arith -Wpointer-compare -Wpointer-sign -Wpointer-to-int-cast -Wpragmas -Wpsabi -Wrestrict -Wreturn-local-addr -Wreturn-type -Wscalar-storage-order -Wsequence-point -Wshadow -Wshift-count-negative -Wshift-count-overflow -Wshift-negative-value -Wsizeof-array-argument -Wsizeof-pointer-memaccess -Wstack-protector -Wstrict-aliasing -Wstrict-prototypes  -Wsuggest-attribute=format -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure -Wsuggest-final-methods -Wsuggest-final-types -Wswitch -Wswitch-bool -Wswitch-default -Wswitch-unreachable -Wsync-nand -Wtautological-compare -Wtrampolines -Wtrigraphs -Wtype-limits -Wuninitialized -Wunknown-pragmas -Wunsafe-loop-optimizations -Wunused -Wunused-but-set-parameter -Wunused-but-set-variable -Wunused-function -Wunused-label -Wunused-local-typedefs -Wunused-macros -Wunused-parameter -Wunused-result -Wunused-value -Wunused-variable -Wvarargs -Wvariadic-macros -Wvector-operation-performance -Wvla -Wvolatile-register-var -Wwrite-strings -Walloc-size-larger-than=9223372036854775807 -Warray-bounds=2 -Wformat-overflow=2 -Wformat-truncation=2 -Wnormalized=nfc -Wshift-overflow=2  -Wunused-const-variable=2 -Wstrict-overflow=1  -Wno-switch-default -Wno-vla -Wno-inline  -Wno-jump-misses-init -Wno-unsafe-loop-optimizations")
     # -Wimplicit-fallthrough=5
     # -Wno-vla-larger-than
@@ -128,7 +136,7 @@ INCLUDE(CheckIncludeFile)
 INCLUDE(CheckIncludeFiles)
 SET(_r "stdbool.h" "stdio.h" "recode.h")
 CHECK_INCLUDE_FILES("${_r}" HAVE_RECODE_H)
-IF (NOT "${HAVE_RECODE_H}")
+IF (NOT HAVE_RECODE_H)
     IF (NOT WIN32)
         MESSAGE(WARNING "Cannot find recode.h anywhere; it is usually unnecessary, but you may opt to install a source release tarball of the recode library from https://github.com/rrthomas/recode")
     ENDIF ()
@@ -151,7 +159,10 @@ MACRO(my_exe exe c_file dir)
     endif()
     if (WIN32)
         # See https://stackoverflow.com/questions/15119639/how-to-link-winsock-in-cmake
-        list(APPEND _libs intl regex wsock32 ws2_32)
+        if (USE_WIN32_REGEX_LIBS)
+            list(APPEND _libs intl regex)
+        endif()
+        list(APPEND _libs wsock32 ws2_32)
     endif()
     TARGET_LINK_LIBRARIES("${exe}" ${_libs})
     if (NOT ("${dir}" STREQUAL "null"))
@@ -190,7 +201,7 @@ SET (_my_man_page "${_my_man_page_dir}/fortune.6")
 SET (_my_man_gen "${CMAKE_CURRENT_SOURCE_DIR}/fortune/process-fortune-man-template.pl")
 SET (_my_args)
 LIST(APPEND _my_args "--cookiedir" "${COOKIEDIR}" "--ocookiedir" "${OCOOKIEDIR}" "--output" "${_my_man_page}")
-IF ("${NO_OFFENSIVE}")
+IF (NO_OFFENSIVE)
     LIST(APPEND _my_args "--without-offensive")
     SET(_MY_IN "${CMAKE_CURRENT_SOURCE_DIR}/fortune/fortune_with_offensive.template.man")
 ELSE()
@@ -274,13 +285,13 @@ IF(WIN32 AND NOT UNIX)
     ENDFOREACH()
 ENDIF()
 
-IF ("${NO_OFFENSIVE}")
+IF (NO_OFFENSIVE)
     ADD_DEFINITIONS("-DNO_OFFENSIVE=1")
 ENDIF()
 
 CHECK_INCLUDE_FILE("regex.h" HAVE_REGEX_H)
 
-IF ("${HAVE_REGEX_H}")
+IF (HAVE_REGEX_H)
     ADD_DEFINITIONS("-DHAVE_REGEX_H")
     ADD_DEFINITIONS("-DPOSIX_REGEX")
 ENDIF()
@@ -302,7 +313,6 @@ SET (COOKIES
     humorists
     kids
     law
-    linuxcookie
     literature
     love
     magic
@@ -316,6 +326,7 @@ SET (COOKIES
     politics
     pratchett
     riddles
+    rules-of-acquisition
     science
     songs-poems
     sports

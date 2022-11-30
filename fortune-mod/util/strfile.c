@@ -141,6 +141,7 @@ static void getargs(int argc, char **argv)
     int ch;
 
     while ((ch = getopt(argc, argv, "c:iorsx")) != EOF)
+    {
         switch (ch)
         {
         case 'c': /* new delimiting char */
@@ -170,6 +171,7 @@ static void getargs(int argc, char **argv)
         default:
             usage();
         }
+    }
     argv += optind;
 
     if (*argv)
@@ -256,18 +258,26 @@ static int cmp_str(const void *v1, const void *v2)
     bool n1 = false;
     bool n2 = false;
     while (!isalnum(c1 = getc(Sort_1)) && c1 != '\0')
+    {
         SET_N(n1, c1);
+    }
     while (!isalnum(c2 = getc(Sort_2)) && c2 != '\0')
+    {
         SET_N(n2, c2);
+    }
 
     while (!IS_END(c1, n1) && !IS_END(c2, n2))
     {
         if (Iflag)
         {
             if (isupper(c1))
+            {
                 c1 = tolower(c1);
+            }
             if (isupper(c2))
+            {
                 c2 = tolower(c2);
+            }
         }
         if (c1 != c2)
         {
@@ -323,8 +333,7 @@ static void do_order(void)
  */
 static void randomize(void)
 {
-    srandom((unsigned int)(time((time_t *)NULL) + getpid()));
-
+    call_srandom();
     Tbl.str_flags |= STR_RANDOM;
     /*      cnt = Tbl.str_numstr;
      * See comment above.  Isn't this stuff distributed worldwide?  How
@@ -355,13 +364,13 @@ static void randomize(void)
  *      CHUNKSIZE blocks; if the latter, we just write each pointer,
  *      and then seek back to the beginning to write in the table.
  */
-int main(int ac, char **av)
+int main(int argc, char **argv)
 {
     char *sp;
     FILE *inf, *outf;
     bool len_was_set = false;
 
-    getargs(ac, av); /* evalute arguments */
+    getargs(argc, argv); /* evalute arguments */
     if (!(inf = fopen(input_filename, "r")))
     {
         perror(input_filename);

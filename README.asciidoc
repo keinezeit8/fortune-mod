@@ -150,7 +150,7 @@ https://en.wikipedia.org/wiki/CMake[CMake] .
 . Added https://travis-ci.org/[Travis-CI] testing.
 . Added valgrind tests and fixed some memory leaks.
 . Released fortune-mod-1.99.3, fortune-mod-1.99.4, v2.0.0 and up to
-version 2.26.0
+version 2.26.0 and beyond.
 . Fixed some C compiler warnings encountered with the GCC compiler flags
 of
 https://bitbucket.org/shlomif/shlomif-cmake-modules/overview[Shlomif_Common].
@@ -165,7 +165,7 @@ preventing a switch to something else.
 https://ci.appveyor.com/project/shlomif/fortune-mod[AppVeyor/MS Windows]
 (with some appreciated help).
 . Found and fixed some security issues:
-* Seems to affect some Linux distributions as well as FreeBSD and
+* Seem to have affected some Linux distributions as well as FreeBSD and
 NetBSD.
 ** Was already fixed in OpenBSD
 * https://bugs.mageia.org/show_bug.cgi?id=26567
@@ -176,13 +176,13 @@ NetBSD.
 * https://github.com/shlomif/fortune-mod/commit/acd338098071bddfa1d21f87e1813727031428ea
 . Reformatted the C code using
 https://clang.llvm.org/docs/ClangFormat.html[clang-format].
+. Moved some cookies to/from the offensive collection.
+. Added new cookies.
 
 == What remains to be done.
 
-. See if there are any more downstream patches to apply.
-. Fix more typos (reports and pull-requests are welcome.)
-. Perhaps modernize the code a little.
-. Add more quotes / fortune cookies.
+. Fix more typos (issue reports and pull-requests are welcome.)
+. Add more quotes / fortune cookies (issue reports and pull-requests are welcome.).
 . Prepare packages for the new releases for
 https://pkgs.org/download/fortune-mod[downstream distributions/Operating
 Systems].

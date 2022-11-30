@@ -87,13 +87,18 @@
 #include <assert.h>
 #include <errno.h>
 #include <locale.h>
+
 #ifndef _WIN32
+
 #include <langinfo.h>
 #define O_BINARY 0
+
 #ifdef HAVE_RECODE_H
 #define WITH_RECODE
 #endif
+
 #endif
+
 #ifdef WITH_RECODE
 #include <recode.h>
 #endif
@@ -111,7 +116,9 @@
 #ifdef DEBUG
 #define DPRINTF(l, x)                                                          \
     if (Debug >= l)                                                            \
-        fprintf x;
+    {                                                                          \
+        fprintf x;                                                             \
+    }
 #else
 #define DPRINTF(l, x)
 #endif
@@ -136,7 +143,6 @@ typedef struct fd
 
 static const char *env_lang = NULL;
 
-static bool Found_one = false;   /* did we find a match? */
 static bool Find_files = false;  /* just find a list of proper fortune files */
 static bool Wait = false;        /* wait desired after fortune */
 static bool Short_only = false;  /* short fortune desired */
@@ -163,11 +169,10 @@ static regex_t Re_pat;
 
 #ifdef WITH_REGEX
 static bool Match = false; /* dump fortunes matching a pattern */
-
 #endif
+
 #ifdef DEBUG
 static bool Debug = false; /* print debug messages */
-
 #endif
 
 static unsigned char *Fortbuf = NULL; /* fortune buffer for -m */
@@ -222,7 +227,7 @@ static unsigned long my_random(const unsigned long base)
     fclose(fp);
     return l % base;
 fallback:
-    return random() % base;
+    return (((unsigned long)random()) % base);
 }
 
 static char *program_version(void)
@@ -284,24 +289,36 @@ static void print_list(FILEDESC *list, int lev)
     {
         fprintf(stderr, "%*s", lev * 4, "");
         if (list->percent == NO_PROB)
+        {
             if (!Equal_probs)
+            {
                 /* This, with some changes elsewhere, gives proper percentages
                  * for every case fprintf(stderr, "___%%"); */
                 fprintf(stderr, "%5.2f%%",
                     (100.0 - Spec_prob) * list->tbl.str_numstr /
                         Noprob_tbl.str_numstr);
+            }
             else if (lev == 0)
+            {
                 fprintf(stderr, "%5.2f%%", 100.0 / Num_files);
+            }
             else
+            {
                 fprintf(stderr, "%5.2f%%", 100.0 / Num_kids);
+            }
+        }
         else
+        {
             fprintf(stderr, "%5.2f%%", 1.0 * list->percent);
+        }
         fprintf(stderr, " %s", STR(list->name));
         DPRINTF(1, (stderr, " (%s, %s, %s)\n", STR(list->path),
                        STR(list->datfile), STR(list->posfile)));
         putc('\n', stderr);
         if (list->child)
+        {
             print_list(list->child, lev + 1);
+        }
         list = list->next;
     }
 }
@@ -311,19 +328,23 @@ static void print_list(FILEDESC *list, int lev)
  * conv_pat:
  *      Convert the pattern to an ignore-case equivalent.
  */
-static char *conv_pat(char *orig)
+static char *conv_pat(const char *const orig_str)
 {
-    char *sp;
+    const char *sp;
     char *new_buf;
 
     size_t cnt = 1; /* allow for '\0' */
-    for (sp = orig; *sp != '\0'; sp++)
+    for (sp = orig_str; *sp != '\0'; sp++)
     {
         const size_t prev_cnt = cnt;
         if (isalpha(*sp))
+        {
             cnt += 4;
+        }
         else
-            cnt++;
+        {
+            ++cnt;
+        }
         if (prev_cnt >= cnt)
         {
             fprintf(stderr, "%s",
@@ -337,26 +358,30 @@ static char *conv_pat(char *orig)
         exit(1);
     }
 
-    for (sp = new_buf; *orig != '\0'; orig++)
+    char *dest_ptr;
+    const char *orig = orig_str;
+    for (dest_ptr = new_buf; *orig != '\0'; ++orig)
     {
         if (islower(*orig))
         {
-            *sp++ = '[';
-            *sp++ = *orig;
-            *sp++ = (char)toupper(*orig);
-            *sp++ = ']';
+            *dest_ptr++ = '[';
+            *dest_ptr++ = *orig;
+            *dest_ptr++ = (char)toupper(*orig);
+            *dest_ptr++ = ']';
         }
         else if (isupper(*orig))
         {
-            *sp++ = '[';
-            *sp++ = *orig;
-            *sp++ = (char)tolower(*orig);
-            *sp++ = ']';
+            *dest_ptr++ = '[';
+            *dest_ptr++ = *orig;
+            *dest_ptr++ = (char)tolower(*orig);
+            *dest_ptr++ = ']';
         }
         else
-            *sp++ = *orig;
+        {
+            *dest_ptr++ = *orig;
+        }
     }
-    *sp = '\0';
+    *dest_ptr = '\0';
     return new_buf;
 }
 #endif
@@ -365,7 +390,7 @@ static char *conv_pat(char *orig)
  * do_malloc:
  *      Do a malloc, checking for NULL return.
  */
-static void *do_malloc(size_t size)
+static void *do_malloc(const size_t size)
 {
     void *new_buf = malloc(size);
 
@@ -385,7 +410,7 @@ static FILEDESC *new_fp(void)
 {
     FILEDESC *fp;
 
-    fp = (FILEDESC *)do_malloc(sizeof *fp);
+    fp = do_malloc(sizeof *fp);
     fp->datfd = -1;
     fp->pos = POS_UNKNOWN;
     fp->inf = NULL;
@@ -452,7 +477,9 @@ static int is_existant(char *file)
     struct stat staat;
 
     if (stat(file, &staat) == 0)
+    {
         return true;
+    }
     switch (errno)
     {
     case ENOENT:
@@ -481,9 +508,13 @@ static int is_fortfile(const char *const file, char **datp)
     DPRINTF(2, (stderr, "is_fortfile(%s) returns ", file));
 
     if (!sp)
+    {
         sp = file;
+    }
     else
+    {
         sp++;
+    }
     if (*sp == '.')
     {
         DPRINTF(2, (stderr, "%s", "false (file starts with '.')\n"));
@@ -493,11 +524,13 @@ static int is_fortfile(const char *const file, char **datp)
     {
         sp++;
         for (int i = 0; suflist[i]; ++i)
+        {
             if (strcmp(sp, suflist[i]) == 0)
             {
                 DPRINTF(2, (stderr, "false (file has suffix \".%s\")\n", sp));
                 return false;
             }
+        }
     }
 
     const size_t do_len = (strlen(file) + 6);
@@ -510,9 +543,13 @@ static int is_fortfile(const char *const file, char **datp)
         return false;
     }
     if (datp)
+    {
         *datp = datfile;
+    }
     else
+    {
         free(datfile);
+    }
     DPRINTF(2, (stderr, "%s", "true\n"));
     return true;
 }
@@ -532,7 +569,7 @@ static bool path_is_absolute(const char *const path)
     return false;
 }
 
-static int open4read(const char const *path)
+static int open4read(const char *const path)
 {
     return open(path, O_RDONLY | O_BINARY);
 }
@@ -541,6 +578,7 @@ static int open4read(const char const *path)
  * add_file:
  *      Add a file to the file list.
  */
+#define GCC_SNPRINTF_MARGIN 10
 static int add_file(int percent, const char *file, const char *dir,
     FILEDESC **head, FILEDESC **tail, FILEDESC *parent)
 {
@@ -556,7 +594,8 @@ static int add_file(int percent, const char *file, const char *dir,
     }
     else
     {
-        const size_t do_len = (strlen(dir) + strlen(file) + 2);
+        const size_t do_len =
+            (strlen(dir) + strlen(file) + (2 + GCC_SNPRINTF_MARGIN));
         path = do_malloc(do_len + 1);
         snprintf(path, do_len, "%s/%s", dir, file);
     }
@@ -599,16 +638,22 @@ static int add_file(int percent, const char *file, const char *dir,
                 *sp = '-';
             }
             else if (All_forts)
+            {
                 found =
                     (CALL__add_file(LOCFORTDIR) || CALL__add_file(LOCOFFDIR) ||
                         COND_CALL__add_file(LOCFORTDIR, FORTDIR) ||
                         COND_CALL__add_file(LOCOFFDIR, OFFDIR));
+            }
             else if (Offend)
+            {
                 found = (CALL__add_file(LOCOFFDIR) ||
                          COND_CALL__add_file(LOCOFFDIR, OFFDIR));
+            }
             else
+            {
                 found = (CALL__add_file(LOCFORTDIR) ||
                          COND_CALL__add_file(LOCFORTDIR, FORTDIR));
+            }
 #undef COND_CALL__add_file
 #undef CALL__add_file
         }
@@ -629,13 +674,19 @@ static int add_file(int percent, const char *file, const char *dir,
                 {
                     char *p = strchr(lang, ':');
                     if (p)
+                    {
                         *p++ = '\0';
+                    }
                     snprintf(langdir, sizeof(langdir), "%s/%s", FORTDIR, lang);
 
                     if (strncmp(path, lang, 2) == 0)
+                    {
                         ret = 1;
+                    }
                     else if (strncmp(path, langdir, strlen(FORTDIR) + 3) == 0)
+                    {
                         ret = 1;
+                    }
                     lang = p;
                 }
                 if (!ret)
@@ -670,7 +721,9 @@ static int add_file(int percent, const char *file, const char *dir,
     snprintf(testpath, do_len, "%s.u8", path);
     //    fprintf(stderr, "State mal: %s\n", testpath);
     if (stat(testpath, &statbuf) == 0)
+    {
         fp->utf8_charset = true;
+    }
 
     free(testpath);
     testpath = NULL;
@@ -681,8 +734,10 @@ static int add_file(int percent, const char *file, const char *dir,
     if ((isdir && !add_dir(fp)) || (!isdir && !is_fortfile(path, &fp->datfile)))
     {
         if (!parent)
+        {
             fprintf(
                 stderr, "fortune:%s not a fortune file or directory\n", path);
+        }
         free(path);
         path = NULL;
         free(fp->datfile);
@@ -690,7 +745,9 @@ static int add_file(int percent, const char *file, const char *dir,
         free(fp->name);
         free(fp->path);
         if (fp->fd >= 0)
+        {
             close(fp->fd);
+        }
         free(fp);
         return false;
     }
@@ -707,14 +764,18 @@ static int add_file(int percent, const char *file, const char *dir,
         free(fp->name);
         free(fp->path);
         if (fp->fd >= 0)
+        {
             close(fp->fd);
+        }
         free(fp);
         return true;
     }
     /* End hack. */
 
     if (!(*head))
+    {
         *head = *tail = fp;
+    }
     else if (fp->percent == NO_PROB)
     {
         (*tail)->next = fp;
@@ -770,7 +831,9 @@ static int add_dir(FILEDESC *const fp)
     while ((dirent = readdir(dir)))
     {
         if (dirent->d_name[0] == 0)
+        {
             continue;
+        }
         char *name = strdup(dirent->d_name);
         if (count_names == max_count_names)
         {
@@ -888,7 +951,9 @@ static int form_file_list(char **files, int file_cnt)
                 {
                     p = strchr(lang, ':');
                     if (p)
+                    {
                         *p++ = '\0';
+                    }
 
                     /* first try full locale */
                     ret = add_file(
@@ -907,7 +972,9 @@ static int form_file_list(char **files, int file_cnt)
 
                     /* if we have found one we have finished */
                     if (ret)
+                    {
                         return ret;
+                    }
                     lang = p;
                 }
                 /* default */
@@ -925,7 +992,9 @@ static int form_file_list(char **files, int file_cnt)
     {
         percent = NO_PROB;
         if (!isdigit(files[i][0]))
+        {
             sp = files[i];
+        }
         else
         {
             const int MAX_PERCENT = 100;
@@ -1022,7 +1091,9 @@ static int form_file_list(char **files, int file_cnt)
             {
                 char *p = strchr(lang, ':');
                 if (p)
+                {
                     *p++ = '\0';
+                }
 
                 /* first try full locale */
                 snprintf(
@@ -1047,13 +1118,16 @@ static int form_file_list(char **files, int file_cnt)
             }
             /* default */
             if (!ret)
+            {
                 ret = add_file(
                     percent, fullpathname, NULL, &File_list, &File_tail, NULL);
+            }
             if (!ret &&
                 strncmp(fullpathname, locpathname, sizeof(fullpathname)))
+            {
                 ret = add_file(
                     percent, locpathname, NULL, &File_list, &File_tail, NULL);
-
+            }
             if (!ret)
             {
                 snprintf(locpathname, sizeof(locpathname), "%s/%s",
@@ -1075,7 +1149,9 @@ static int form_file_list(char **files, int file_cnt)
         }
         else if (!add_file(
                      percent, fullpathname, NULL, &File_list, &File_tail, NULL))
+        {
             return false;
+        }
     }
     return true;
 }
@@ -1085,9 +1161,8 @@ static int form_file_list(char **files, int file_cnt)
  */
 static void getargs(int argc, char **argv)
 {
-    bool ignore_case = false;
-
 #ifdef WITH_REGEX
+    bool ignore_case = false;
     char *pat = NULL;
 #endif
 
@@ -1106,7 +1181,8 @@ static void getargs(int argc, char **argv)
 #endif
 
     while ((ch = getopt(argc, argv,
-                "ac" DEBUG_GETOPT "efilm:n:" OFFENSIVE_GETOPT "suvw")) != EOF)
+                "ac" DEBUG_GETOPT "efhilm:n:" OFFENSIVE_GETOPT "suvw")) != EOF)
+    {
         switch (ch)
         {
         case 'a': /* any fortune */
@@ -1146,7 +1222,8 @@ static void getargs(int argc, char **argv)
         case 'i': /* case-insensitive match */
         case 'm': /* dump out the fortunes */
             (void)fprintf(stderr, "%s",
-                "fortune: can't match fortunes on this system (Sorry)\n");
+                "fortune: can't match fortunes on this system "
+                "(Sorry)\n");
             exit(0);
 #else             /* NO_REGEX */
         case 'm': /* dump out the fortunes */
@@ -1166,10 +1243,12 @@ static void getargs(int argc, char **argv)
         case 'c':
             Show_filename = true;
             break;
+        case 'h':
         case '?':
         default:
             usage();
         }
+    }
     argc -= optind;
     argv += optind;
 
@@ -1182,16 +1261,21 @@ static void getargs(int argc, char **argv)
         exit(1); /* errors printed through form_file_list() */
     }
 #ifdef DEBUG
-/*      if (Debug >= 1)
- * print_list(File_list, 0); */
-#endif /* DEBUG */
+#if 0
+      if (Debug >= 1)
+ print_list(File_list, 0); /* Causes crash with new %% code */
+
+#endif
+#endif
 
 /* If (Find_files) print_list() moved to main */
 #ifdef WITH_REGEX
     if (pat)
     {
         if (ignore_case)
+        {
             pat = conv_pat(pat);
+        }
         if (BAD_COMP(RE_COMP(pat)))
         {
             fprintf(stderr, "bad pattern: %s\n", pat);
@@ -1221,14 +1305,20 @@ static void init_prob(void)
      */
     FILEDESC *last = NULL;
     for (fp = File_tail; fp; fp = fp->prev)
+    {
         if (fp->percent == NO_PROB)
         {
             num_noprob++;
             if (Equal_probs)
+            {
                 last = fp;
+            }
         }
         else
+        {
             percent += fp->percent;
+        }
+    }
     DPRINTF(1, (stderr, "summing probabilities:%d%% with %d NO_PROB's\n",
                    percent, num_noprob));
     if (percent > 100)
@@ -1239,16 +1329,19 @@ static void init_prob(void)
     else if (percent < 100 && num_noprob == 0)
     {
         fprintf(stderr,
-            "fortune: no place to put residual probability (%d%%)\n", percent);
+            "fortune: no place to put residual probability "
+            "(%d%%)\n",
+            percent);
         exit(1);
     }
     else if (percent == 100 && num_noprob != 0)
     {
-        fprintf(
-            stderr, "fortune: no probability left to put in residual files\n");
+        fprintf(stderr, "fortune: no probability left to put in "
+                        "residual files\n");
         exit(1);
     }
-    Spec_prob = percent; /* this is for -f when % is specified on cmd line */
+    Spec_prob = percent; /* this is for -f when % is specified on
+                            cmd line */
     percent = 100 - percent;
     if (Equal_probs)
     {
@@ -1259,11 +1352,13 @@ static void init_prob(void)
                 frac = percent / num_noprob;
                 DPRINTF(1, (stderr, ", frac = %d%%", frac));
                 for (fp = File_tail; fp != last; fp = fp->prev)
+                {
                     if (fp->percent == NO_PROB)
                     {
                         fp->percent = frac;
                         percent -= frac;
                     }
+                }
             }
             last->percent = percent;
             DPRINTF(1, (stderr, ", residual = %d%%", percent));
@@ -1277,8 +1372,13 @@ static void init_prob(void)
     DPRINTF(1, (stderr, "%s", "\n"));
 
 #ifdef DEBUG
-/*      if (Debug >= 1)
- * print_list(File_list, 0); *//* Causes crash with new %% code */
+#if 0
+      if (Debug >= 1)
+    {
+ print_list(File_list, 0); /* Causes crash with new %% code */
+    }
+
+#endif
 #endif
 }
 
@@ -1301,9 +1401,13 @@ static void sum_tbl(STRFILE *t1, STRFILE *t2)
 {
     t1->str_numstr += t2->str_numstr;
     if (t1->str_longlen < t2->str_longlen)
+    {
         t1->str_longlen = t2->str_longlen;
+    }
     if (t1->str_shortlen > t2->str_shortlen)
+    {
         t1->str_shortlen = t2->str_shortlen;
+    }
 }
 
 /*
@@ -1316,7 +1420,9 @@ static void get_tbl(FILEDESC *fp)
     FILEDESC *child;
 
     if (fp->read_tbl)
+    {
         return;
+    }
     if (!(fp->child))
     {
         if ((fd = open4read(fp->datfile)) < 0)
@@ -1388,15 +1494,19 @@ static void sum_noprobs(FILEDESC *fp)
     static bool did_noprobs = false;
 
     if (did_noprobs)
+    {
         return;
+    }
     zero_tbl(&Noprob_tbl);
     while (fp)
     {
         get_tbl(fp);
-        /* This conditional should help us return correct values for -f
-         * when a percentage is specified */
+        /* This conditional should help us return correct values for
+         * -f when a percentage is specified */
         if (fp->percent == NO_PROB)
+        {
             sum_tbl(&Noprob_tbl, &fp->tbl);
+        }
         fp = fp->next;
     }
     did_noprobs = true;
@@ -1413,11 +1523,13 @@ static FILEDESC *pick_child(FILEDESC *parent)
 
     if (Equal_probs)
     {
-        choice = my_random(parent->num_children);
+        choice = (int)my_random((unsigned long)parent->num_children);
         DPRINTF(1, (stderr, "    choice = %d (of %d)\n", choice,
                        parent->num_children));
         for (fp = parent->child; choice--; fp = fp->next)
+        {
             continue;
+        }
         DPRINTF(1, (stderr, "    using %s\n", fp->name));
         return fp;
     }
@@ -1454,8 +1566,8 @@ static void open_dat(FILEDESC *fp)
 
 /*
  * get_pos:
- *      Get the position from the pos file, if there is one.  If not,
- *      return a random number.
+ *      Get the position from the pos file, if there is one.  If
+ * not, return a random number.
  */
 static void get_pos(FILEDESC *fp)
 {
@@ -1465,13 +1577,16 @@ static void get_pos(FILEDESC *fp)
         fp->pos = (int32_t)(my_random(fp->tbl.str_numstr));
     }
     if (++(fp->pos) >= (int32_t)fp->tbl.str_numstr)
+    {
         fp->pos -= fp->tbl.str_numstr;
+    }
     DPRINTF(1, (stderr, "pos for %s is %ld\n", fp->name, fp->pos));
 }
 
 /*
  * get_fort:
- *      Get the fortune data file's seek pointer for the next fortune.
+ *      Get the fortune data file's seek pointer for the next
+ * fortune.
  */
 static void get_fort(void)
 {
@@ -1479,25 +1594,33 @@ static void get_fort(void)
     int choice;
 
     if (!File_list->next || File_list->percent == NO_PROB)
+    {
         fp = File_list;
+    }
     else
     {
-        choice = my_random(100);
+        choice = (int)my_random(100);
         DPRINTF(1, (stderr, "choice = %d\n", choice));
         for (fp = File_list; fp->percent != NO_PROB; fp = fp->next)
+        {
             if (choice < fp->percent)
+            {
                 break;
+            }
             else
             {
                 choice -= fp->percent;
                 DPRINTF(1, (stderr, "    skip \"%s\", %d%% (choice = %d)\n",
                                fp->name, fp->percent, choice));
             }
+        }
         DPRINTF(1, (stderr, "using \"%s\", %d%% (choice = %d)\n", fp->name,
                        fp->percent, choice));
     }
     if (fp->percent != NO_PROB)
+    {
         get_tbl(fp);
+    }
     else
     {
         if (fp->next)
@@ -1570,7 +1693,9 @@ static int maxlen_in_list(FILEDESC *list)
         if (fp->child)
         {
             if ((len = maxlen_in_list(fp->child)) > maxlen)
+            {
                 maxlen = len;
+            }
         }
         else
         {
@@ -1588,7 +1713,7 @@ static int maxlen_in_list(FILEDESC *list)
  * matches_in_list
  *      Print out the matches from the files in the list.
  */
-static void matches_in_list(FILEDESC *list)
+static void matches_in_list(FILEDESC *list, bool *const Found_one_ptr)
 {
     unsigned char *sp;
     unsigned char *p; /* -allover */
@@ -1601,7 +1726,7 @@ static void matches_in_list(FILEDESC *list)
     {
         if (fp->child)
         {
-            matches_in_list(fp->child);
+            matches_in_list(fp->child, Found_one_ptr);
             continue;
         }
         DPRINTF(1, (stderr, "searching in %s\n", fp->path));
@@ -1634,9 +1759,13 @@ static void matches_in_list(FILEDESC *list)
                     for (p = (unsigned char *)output; (ch = *p); ++p)
                     {
                         if (isupper(ch) && isascii(ch))
+                        {
                             *p = 'A' + (ch - 'A' + 13) % 26;
+                        }
                         else if (islower(ch) && isascii(ch))
+                        {
                             *p = 'a' + (ch - 'a' + 13) % 26;
+                        }
                     }
                 }
 
@@ -1648,7 +1777,7 @@ static void matches_in_list(FILEDESC *list)
                     {
                         fprintf(
                             stderr, "(%s)\n%c\n", fp->name, fp->tbl.str_delim);
-                        Found_one = true;
+                        (*Found_one_ptr) = true;
                         in_file = true;
                     }
                     fputs(output, stdout);
@@ -1669,17 +1798,18 @@ static void matches_in_list(FILEDESC *list)
 
 /*
  * find_matches:
- *      Find all the fortunes which match the pattern we've been given.
+ *      Find all the fortunes which match the pattern we've been
+ * given.
  */
-static int find_matches(void)
+static bool find_matches(void)
 {
     Fort_len = maxlen_in_list(File_list);
     DPRINTF(2, (stderr, "Maximum length is %d\n", Fort_len));
     /* extra length, "%\n" is appended */
     Fortbuf = do_malloc((unsigned int)Fort_len + 10);
 
-    Found_one = false;
-    matches_in_list(File_list);
+    bool Found_one = false;
+    matches_in_list(File_list, &Found_one);
     return Found_one;
     /* NOTREACHED */
 }
@@ -1693,7 +1823,9 @@ static void display(FILEDESC *fp)
     open_fp(fp);
     fseek(fp->inf, (long)Seekpts[0], SEEK_SET);
     if (Show_filename)
+    {
         printf("(%s)\n%%\n", fp->name);
+    }
     for (Fort_len = 0; fgets((char *)line, sizeof line, fp->inf) &&
                        !STR_ENDSTRING(line, fp->tbl);
          Fort_len++)
@@ -1703,9 +1835,13 @@ static void display(FILEDESC *fp)
             for (p = (char *)line; (ch = *p); ++p)
             {
                 if (isupper(ch) && isascii(ch))
+                {
                     *p = 'A' + (ch - 'A' + 13) % 26;
+                }
                 else if (islower(ch) && isascii(ch))
+                {
                     *p = 'a' + (ch - 'a' + 13) % 26;
+                }
             }
         }
         if (fp->utf8_charset && (!No_recode))
@@ -1730,7 +1866,9 @@ static int fortlen(void)
     char line[BUFSIZ];
 
     if (!(Fortfile->tbl.str_flags & (STR_RANDOM | STR_ORDERED)))
+    {
         nchar = (Seekpts[1] - Seekpts[0]) - 2; /* for %^J delimiter */
+    }
     else
     {
         open_fp(Fortfile);
@@ -1738,7 +1876,9 @@ static int fortlen(void)
         nchar = 0;
         while (fgets(line, sizeof line, Fortfile->inf) &&
                !STR_ENDSTRING(line, Fortfile->tbl))
+        {
             nchar += strlen(line);
+        }
     }
     Fort_len = nchar;
     return nchar;
@@ -1766,7 +1906,7 @@ static void free_desc(FILEDESC *ptr)
     }
 }
 
-int main(int ac, char *av[])
+int main(int argc, char *argv[])
 {
 #ifdef WITH_RECODE
     const char *ctype;
@@ -1775,11 +1915,17 @@ int main(int ac, char *av[])
     int exit_code = 0;
     env_lang = getenv("LC_ALL");
     if (!env_lang)
+    {
         env_lang = getenv("LC_MESSAGES");
+    }
     if (!env_lang)
+    {
         env_lang = getenv("LANGUAGE");
+    }
     if (!env_lang)
+    {
         env_lang = getenv("LANG");
+    }
 #ifdef _WIN32
     if (!env_lang)
     {
@@ -1787,10 +1933,7 @@ int main(int ac, char *av[])
     }
 #endif
 
-#ifndef DONT_CALL_GETARGS
-    getargs(ac, av);
-#endif
-
+    getargs(argc, argv);
 #ifdef WITH_RECODE
     outer = recode_new_outer(true);
     request = recode_new_request(outer);
@@ -1812,7 +1955,7 @@ int main(int ac, char *av[])
         ctype = "ISO-8859-1";
     }
 #endif
-    const size_t do_len = strlen(ctype) + 7 + 1;
+    const size_t do_len = strlen(ctype) + (7 + 1 + GCC_SNPRINTF_MARGIN);
     char *crequest = do_malloc(do_len + 1);
     snprintf(crequest, do_len, "UTF-8..%s", ctype);
     recode_scan_request(request, crequest);
@@ -1822,7 +1965,7 @@ int main(int ac, char *av[])
 #ifdef WITH_REGEX
     if (Match)
     {
-        exit_code = (find_matches() != 0);
+        exit_code = find_matches();
         regfree(&Re_pat);
         goto cleanup;
     }
@@ -1833,12 +1976,14 @@ int main(int ac, char *av[])
     {
         sum_noprobs(File_list);
         if (Equal_probs)
+        {
             calc_equal_probs();
+        }
         print_list(File_list, 0);
     }
     else
     {
-        srandom((unsigned int)(time((time_t *)NULL) + getpid()));
+        call_srandom();
         do
         {
             get_fort();
@@ -1853,7 +1998,10 @@ int main(int ac, char *av[])
             sleep((unsigned int)mymax(Fort_len / CPERS, MINW));
         }
     }
+#ifdef WITH_REGEX
 cleanup:
+#endif
+
 #ifdef WITH_RECODE
     recode_delete_request(request);
     recode_delete_outer(outer);

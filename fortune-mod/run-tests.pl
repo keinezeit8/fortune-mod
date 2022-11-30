@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use File::Spec ();
+use File::Spec   ();
 use Getopt::Long qw/ GetOptions /;
 
 my $src_dir;
@@ -35,6 +35,11 @@ sub do_system
     }
 }
 
+do_system(
+    {
+        cmd => [ $^X, "$src_dir/tests/scripts/split-valgrind.pl", ]
+    }
+);
 do_system(
     {
         cmd => [
